@@ -1,0 +1,57 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import spaceTheme from './theme';
+
+// Componentes
+import Login from './components/Login';
+import ParticleBackground from './components/ParticleBackground';
+import Layout from './components/Layout';
+import Terminal from './components/Terminal';
+import Market from './components/Market';
+import History from './components/History';
+
+function App() {
+  return (
+    <ThemeProvider theme={spaceTheme}>
+      <CssBaseline />
+
+      {/* El Router envuelve toda la aplicación */}
+      <Router>
+        <Routes>
+          {/* RUTA 1: Login (Sin la barra lateral, pero con el fondo de estrellas) */}
+          <Route path="/" element={
+            <>
+              <ParticleBackground />
+              <Login />
+            </>
+          } />
+
+          {/* RUTAS CON LA BARRA LATERAL (Envueltas en el Layout) */}
+          <Route path="/terminal" element={
+            <Layout>
+              <Terminal />
+            </Layout>
+          } />
+
+          <Route path="/mercado" element={
+            <Layout>
+              <Market />
+            </Layout>
+          } />
+
+          <Route path="/historial" element={
+            <Layout>
+              <History />
+            </Layout>
+          } />
+
+        </Routes>
+      </Router>
+
+    </ThemeProvider>
+  );
+}
+
+export default App;
