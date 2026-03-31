@@ -1,79 +1,123 @@
 import requests
-
+import time
 BASE_URL = "https://api.coingecko.com/api/v3"
 
-# 🔹 1. LISTA DE MUCHOS ACTIVOS (como tu lista larga)
+
+# 🔹 Lista de criptos
+
+
+
+
+cache_data = None
+cache_time = 0
+
 def obtener_activos():
-    url = f"{BASE_URL}/coins/markets"
+    global cache_data, cache_time
 
-    params = {
-        "vs_currency": "usd",
-        "order": "market_cap_desc",
-        "per_page": 50,
-        "page": 1,
-        "sparkline": False
-    }
+    # 🔥 si pasaron menos de 30s → usa cache
+    if time.time() - cache_time < 30 and cache_data:
+        print("USANDO CACHE")
+        return cache_data
 
-    response = requests.get(url, params=params)
-    data = response.json()
+    try:
+        url = f"{BASE_URL}/coins/markets"
+        params = {
+            "vs_currency": "usd",
+            "order": "market_cap_desc",
+            "per_page": 50,
+            "page": 1,
+            "sparkline": "false"
+        }
 
-    if not isinstance(data, list):
-        print("Error en API:", data)
-        return []
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
 
-    activos = []
+        response = requests.get(url, params=params, headers=headers)
 
-    for coin in data:
-        cambio = coin.get("price_change_percentage_24h")
+        if response.status_code != 200:
+            print("RATE LIMIT:", response.status_code)
+            return cache_data or []
 
-        activos.append({
-            "symbol": coin["symbol"].upper(),
-            "nombre": coin["name"],
-            "precio": coin["current_price"],
-            "cambio": round(cambio, 2) if cambio is not None else 0
-        })
+        data = response.json()
 
-    return activos
-def obtener_detalles(coin_id="bitcoin"):
+        # 🔥 guardar en cache
+        cache_data = data
+        cache_time = time.time()
+
+        return data
+
+    except Exception as e:
+        print("ERROR:", e)
+        return cache_data or []
+
+# 🔹 Detalles
+def obtener_detalles(coin_id):
     url = f"{BASE_URL}/coins/{coin_id}"
-
     response = requests.get(url)
     data = response.json()
 
+    # 🔥 FILTRAR SOLO LO NECESARIO
     return {
-        "nombre": data["name"],
-        "precio": data["market_data"]["current_price"]["usd"],
-        "market_cap": data["market_data"]["market_cap"]["usd"],
-        "volumen": data["market_data"]["total_volume"]["usd"],
-        "circulante": data["market_data"]["circulating_supply"],
-        "ath": data["market_data"]["ath"]["usd"],
-        "ath_change": round(data["market_data"]["ath_change_percentage"]["usd"], 2)
+        "nombre": data.get("name"),
+        "simbolo": data.get("symbol"),
+        "imagen": data.get("image", {}).get("large"),
+
+        "precio": data.get("market_data", {}).get("current_price", {}).get("usd"),
+        "rank": data.get("market_cap_rank"),
+
+        "high_24h": data.get("market_data", {}).get("high_24h", {}).get("usd"),
+        "low_24h": data.get("market_data", {}).get("low_24h", {}).get("usd"),
+
+        "cambio_24h": data.get("market_data", {}).get("price_change_percentage_24h"),
+
+        "descripcion": data.get("description", {}).get("es", "")[:200]  # opcional recortar
     }
-def obtener_historial(coin_id="bitcoin", dias=1):
-    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart"
-
-    params = {
-        "vs_currency": "usd",
-        "days": dias
-    }
-
-    response = requests.get(url, params=params)
-    data = response.json()
-
-    precios = [p[1] for p in data["prices"]]
-
-    return precios
 
 
-# 🔹 Bitcoin principal
-def obtener_bitcoin():
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true"
 
-    response = requests.get(url)
-    data = response.json()["bitcoin"]
+# 🔹 Historial
 
-    return {
-        "nombre": "Bitcoin",
-        "precio": data["usd"],
-        "cambio": round(data.get("usd_24h_change", 0), 2)
-    }
+# 🔥 cache global
+cache_historial = {}
+cache_time_historial = {}
+
+def obtener_historial(coinId, days):
+    global cache_historial, cache_time_historial
+
+    key = f"{coinId}_{days}"
+
+    # 🔥 si hay cache y no ha pasado tiempo → usarlo
+    if key in cache_historial:
+        if time.time() - cache_time_historial[key] < 30:
+            print("USANDO CACHE HISTORIAL")
+            return cache_historial[key]
+
+    try:
+        url = f"{BASE_URL}/coins/{coinId}/market_chart"
+        params = {
+            "vs_currency": "usd",
+            "days": days
+        }
+
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
+
+        response = requests.get(url, params=params, headers=headers)
+
+        if response.status_code != 200:
+            print("ERROR HISTORIAL:", response.status_code)
+            return cache_historial.get(key, {"prices": []})
+
+        data = response.json()
+
+        # 🔥 guardar cache
+        cache_historial[key] = data
+        cache_time_historial[key] = time.time()
+
+        return data
+
+    except Exception as e:
+        print("ERROR:", e)
+        return cache_historial.get(key, {"prices": []})

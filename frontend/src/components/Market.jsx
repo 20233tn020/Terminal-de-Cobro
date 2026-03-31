@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
 import {
   Box, Typography, Card, CardContent, Grid, Avatar,
   CircularProgress, Button, Chip, TextField, InputAdornment,
@@ -18,6 +19,7 @@ const themeColors = {
   primary: '#070825',
   secondary: '#ECEFF1',
   complementary: '#121313',
+  textos: '#ECEFF1',
   up: '#00c853',
   down: '#d50000',
   cardBg: '#ffffff',
@@ -52,7 +54,6 @@ const formatPercentage = (num) => {
 
 // ─── COMPONENTE PRINCIPAL ──────────────────────────────────────────────────────
 export default function Market() {
-  const [marketData, setMarketData] = useState([]);
   const [selectedCoin, setSelectedCoin] = useState(null);
   const [chartData, setChartData] = useState({ dates: [], prices: [] });
   const [timeRange, setTimeRange] = useState('1');
@@ -60,32 +61,80 @@ export default function Market() {
   const [loadingChart, setLoadingChart] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. OBTENER TOP 50 ACTIVOS
+  //VARIVLES PARA  TODAS LAS MONEDAS
+  const [marketData, setMarketData] = useState([]);
+  // ==========================
+  // 🔥 OBTENER MONEDAS (TU BACKEND)
+  // ==========================
   const fetchMarketData = useCallback(async () => {
     try {
-      const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false');
-      if (!res.ok) throw new Error('Error en API');
+      const res = await fetch("http://127.0.0.1:5000/api/mercado/activos");
+
+      if (!res.ok) throw new Error("Error en API");
+
       const data = await res.json();
+
       setMarketData(data);
-      if (!selectedCoin && data.length > 0) setSelectedCoin(data[0]);
+
+      if (!selectedCoin && data.length > 0) {
+        setSelectedCoin(data[0]);
+      }
+
     } catch (error) {
-      console.warn("Usando datos de respaldo (Rate Limit de API posible).");
+      console.warn("Usando datos de respaldo");
+
       const fallbackData = [
-        { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin', current_price: 66840, price_change_percentage_24h: 2.5, market_cap: 1300000000000, total_volume: 35000000000, circulating_supply: 19600000, high_24h: 67000, low_24h: 64500, ath: 73750, ath_change_percentage: -9.3, image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png' },
-        { id: 'ethereum', symbol: 'eth', name: 'Ethereum', current_price: 3450, price_change_percentage_24h: -1.2, market_cap: 410000000000, total_volume: 15000000000, circulating_supply: 120000000, high_24h: 3550, low_24h: 3400, ath: 4891, ath_change_percentage: -29.4, image: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png' },
+        {
+          id: "bitcoin",
+          symbol: "btc",
+          name: "Bitcoin",
+          current_price: 66840,
+        },
+        {
+          id: "ethereum",
+          symbol: "eth",
+          name: "Ethereum",
+          current_price: 3450,
+        },
       ];
+
       setMarketData(fallbackData);
+
       if (!selectedCoin) setSelectedCoin(fallbackData[0]);
+
     } finally {
       setLoadingTop(false);
     }
   }, [selectedCoin]);
 
+  // ==========================
+  // 🔥 AUTO ACTUALIZACIÓN
+  // ==========================
+  useEffect(() => {
+    fetchMarketData(); // primera carga
+
+    const interval = setInterval(fetchMarketData, 10000); // cada 10s
+
+    return () => clearInterval(interval);
+  }, [fetchMarketData]);
+
+  // ==========================
+  // 🔍 FILTRO (opcional)
+  // ==========================
+  const filteredCoins = marketData.filter(coin =>
+      coin.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // ==========================
+  // 🖥️ UI BÁSICA
+  // ==========================
+
+  // =============================================================================================================================
   // 2. OBTENER GRÁFICA DEL ACTIVO SELECCIONADO
   const fetchChartData = useCallback(async (coinId, days) => {
     setLoadingChart(true);
     try {
-      const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`);
+      const res = await fetch(`http://127.0.0.1:5000/api/mercado/historial/${coinId}?dias=${days}`)
       if (!res.ok) throw new Error('Error en API');
       const data = await res.json();
 
@@ -112,6 +161,10 @@ export default function Market() {
       setLoadingChart(false);
     }
   }, [selectedCoin]);
+
+
+
+
 
   useEffect(() => { fetchMarketData(); }, [fetchMarketData]);
   useEffect(() => {
@@ -267,7 +320,7 @@ export default function Market() {
                         <Typography variant="body2" color="text.secondary" fontWeight="bold" mb={1} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <AccountBalanceIcon fontSize="small"/> Cap. de Mercado
                         </Typography>
-                        <Typography variant="h6" fontWeight="bold" color={themeColors.primary}>
+                        <Typography variant="h6" fontWeight="bold" color={themeColors.textos}>
                           ${formatCompactNumber(selectedCoin.market_cap)}
                         </Typography>
                       </CardContent>
@@ -279,7 +332,7 @@ export default function Market() {
                         <Typography variant="body2" color="text.secondary" fontWeight="bold" mb={1} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <AccessTimeIcon fontSize="small"/> Volumen (24h)
                         </Typography>
-                        <Typography variant="h6" fontWeight="bold" color={themeColors.primary}>
+                        <Typography variant="h6" fontWeight="bold" color={themeColors.textos}>
                           ${formatCompactNumber(selectedCoin.total_volume)}
                         </Typography>
                       </CardContent>
@@ -291,7 +344,7 @@ export default function Market() {
                         <Typography variant="body2" color="text.secondary" fontWeight="bold" mb={1} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <ShowChartIcon fontSize="small"/> Circulante
                         </Typography>
-                        <Typography variant="h6" fontWeight="bold" color={themeColors.primary}>
+                        <Typography variant="h6" fontWeight="bold" color={themeColors.textos}>
                           {formatCompactNumber(selectedCoin.circulating_supply)} {selectedCoin.symbol.toUpperCase()}
                         </Typography>
                       </CardContent>
@@ -303,7 +356,7 @@ export default function Market() {
                         <Typography variant="body2" color="text.secondary" fontWeight="bold" mb={1} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <EmojiEventsIcon fontSize="small"/> Máx. Histórico (ATH)
                         </Typography>
-                        <Typography variant="h6" fontWeight="bold" color={themeColors.primary}>
+                        <Typography variant="h6" fontWeight="bold" color={themeColors.textos}>
                           {formatCurrency(selectedCoin.ath)}
                         </Typography>
                       </CardContent>
@@ -331,7 +384,7 @@ export default function Market() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   InputProps={{
                     startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>,
-                    sx: { borderRadius: 2, bgcolor: '#f5f7fa', '& fieldset': { border: 'none' } }
+                    sx: { borderRadius: 2, bgcolor: '#f5f7fa', color:'#000000','& fieldset': { border: 'none' } }
                   }}
                 />
               </Box>
