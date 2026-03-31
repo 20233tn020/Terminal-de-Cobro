@@ -316,7 +316,7 @@ const Terminal = () => {
         open={!!openWindow && transactionState === 'idle'}
         onClose={handleCloseWindow}
         maxWidth="xs" fullWidth
-        PaperProps={{ sx: { borderRadius: 3, p: 1, bgcolor: '#ffffff' } }} // Fondo Blanco
+        PaperProps={{ sx: { borderRadius: 3, p: 1, bgcolor: '#fff' } }} // Fondo Blanco
       >
         <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold', color: '#070825', pb: 1 }}>
           {openWindow === 'ingresar' && "Depósito en Efectivo"}
@@ -325,28 +325,51 @@ const Terminal = () => {
           {openWindow === 'divisas' && "Compra / Venta de Divisas"}
         </DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" textAlign="center" mb={4}>
+          <Typography variant="body2" color="text.secondary" textAlign="center" mb={4} >
             Por favor, verifique el monto antes de proceder con la autorización en la bóveda.
           </Typography>
 
           <form id="operation-form" onSubmit={processTransaction}>
             {openWindow === 'transferir' && (
-              <TextField fullWidth label="Cuenta Destino (CLABE/Tarjeta)" variant="filled" sx={{ mb: 3 }} required />
+                <TextField  fullWidth label="Cuenta Destino (CLABE/Tarjeta)" variant="filled" sx={{ mb: 3 }} required InputProps={{sx: {color: "#90caf9"}}}/>
             )}
+
             {openWindow === 'divisas' && (
               <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={6}><TextField select fullWidth label="Origen" defaultValue="USD" variant="filled"><MenuItem value="USD">Créditos</MenuItem><MenuItem value="EUR">Euros</MenuItem></TextField></Grid>
-                <Grid item xs={6}><TextField select fullWidth label="Destino" defaultValue="EUR" variant="filled"><MenuItem value="USD">Créditos</MenuItem><MenuItem value="EUR">Euros</MenuItem></TextField></Grid>
+                <Grid item xs={6 }><TextField select fullWidth label="Origen"  defaultValue="USD" variant="filled" sx={{
+                    '& .MuiInputBase-input': {
+                        color: '#90caf9'
+                    },
+                    '& .MuiInputLabel-root': {
+                        color: '#90caf9'
+                    }
+                }}><MenuItem value="USD">Créditos</MenuItem><MenuItem value="EUR">Euros</MenuItem></TextField></Grid>
+                <Grid item xs={6}><TextField select fullWidth label="Destino" defaultValue="EUR" variant="filled"
+                sx={{
+                      '& .MuiInputBase-input': {
+                      olor: '#90caf9'
+                      },
+                      '& .MuiInputLabel-root': {
+                      color: '#90caf9'
+                      }
+                }}
+                ><MenuItem value="USD">Créditos</MenuItem><MenuItem value="EUR">Euros</MenuItem></TextField></Grid>
               </Grid>
             )}
 
             <TextField
               autoFocus fullWidth required type="number"
               label="Monto de la Operación" variant="filled"
-              value={amount} onChange={(e) => setAmount(e.target.value)}
-              InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment>, sx: { fontSize: '1.5rem', fontWeight: 'bold' } }}
+              value={amount}   onChange={(e) => setAmount(e.target.value)}
+              InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment>, sx: { fontSize: '1.5rem', fontWeight: 'bold',  } }}
+              InputProps={{
+                  sx: {
+                      color: "#90caf9" // 🔥 texto que escribes
+                  }
+              }}
             />
           </form>
+
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0, flexDirection: 'column', gap: 1 }}>
           <Button type="submit" form="operation-form" fullWidth variant="contained" size="large" sx={{ bgcolor: '#070825', borderRadius: 2 }}>

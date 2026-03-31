@@ -7,25 +7,32 @@ from service.mercado_service import (
 
 mercado_bp = Blueprint("mercado", __name__)
 
-# 🔹 Lista completa
-@mercado_bp.route("/activos")
+# 🔹 Lista de criptos
+@mercado_bp.route("/activos", methods=["GET"])
 def activos():
-    return jsonify(obtener_activos())
+    try:
+        data = obtener_activos()
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
-# 🔹 Detalles de moneda (BTC, ETH, etc.)
-@mercado_bp.route("/detalles/<coin_id>")
+# 🔹 Detalles de una moneda
+@mercado_bp.route("/detalles/<coin_id>", methods=["GET"])
 def detalles(coin_id):
-    return jsonify(obtener_detalles(coin_id))
+    try:
+        data = obtener_detalles(coin_id)
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
-# 🔹 Historial dinámico (día, mes, año)
-@mercado_bp.route("/historial/<coin_id>")
-def historial(coin_id):
-    dias_param = request.args.get("dias", "1")
-
-    if dias_param.isdigit():
-        dias = int(dias_param)
-    else:
-        dias = 1
-    return jsonify(obtener_historial(coin_id, dias))
+# 🔹 Historial para gráfica
+@mercado_bp.route("/historial/<coinId>", methods=["GET"])
+def historial(coinId):
+    try:
+        days = int(request.args.get("days", 1))
+        data = obtener_historial(coinId, days)
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
