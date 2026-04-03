@@ -57,6 +57,8 @@ const SpaceCreditCard = ({ name, number, exp, ccv, tier }) => {
 
   const theme = getCardTheme(tier);
 
+  
+
   return (
     <Box sx={{
       perspective: '1000px',

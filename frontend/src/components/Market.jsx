@@ -61,6 +61,11 @@ export default function Market() {
   const [loadingChart, setLoadingChart] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+
+
+
+
+
   //VARIVLES PARA  TODAS LAS MONEDAS
   const [marketData, setMarketData] = useState([]);
   // ==========================

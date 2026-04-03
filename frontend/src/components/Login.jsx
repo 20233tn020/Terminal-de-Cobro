@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import { Box, Card, CardContent, Typography, TextField, Button, InputAdornment } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -7,6 +7,49 @@ import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const navigate = useNavigate(); // Instanciamos el hook de navegación
+    const [usuario, setUsuario] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+
+
+    const handleLogin = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    usuario,
+                    password
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.status) {
+                localStorage.setItem("user", JSON.stringify(data.user));
+
+                console.log("CREDENCIALES CORRECTAS");
+                alert("CREDENCIALES CORRECTAS");
+
+                navigate("/terminal");
+
+            } else {
+                alert("CONTRASEÑA INCORRECTA");
+                setError(data.msj);
+            }
+
+        } catch (err) {
+            setError("Error de conexión");
+        }
+    };
+
+
+
+
+
+
   return (
     <Box
       sx={{
@@ -45,6 +88,10 @@ const Login = () => {
             fullWidth
             variant="outlined"
             placeholder="Usuario"
+            name="usuarios"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
+            id="usuarios"
             sx={{
               mb: 3,
               input: { color: 'white' },
@@ -69,6 +116,10 @@ const Login = () => {
             type="password"
             variant="outlined"
             placeholder="Contraseña"
+            value={password}
+            id="pasword"
+            name="pasword"
+            onChange={(e) => setPassword(e.target.value)}
             sx={{
               mb: 4,
               input: { color: 'white' },
@@ -81,7 +132,7 @@ const Login = () => {
             }}
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start">
+                <InputAdornment position="start" >
                   <LockIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
                 </InputAdornment>
               ),
@@ -89,7 +140,7 @@ const Login = () => {
           />
 
           <Button
-            onClick={() => navigate('/terminal')}
+              onClick={handleLogin}
             fullWidth
             variant="contained"
             size="large"

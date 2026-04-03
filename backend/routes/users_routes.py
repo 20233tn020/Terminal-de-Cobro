@@ -1,3 +1,7 @@
+# =======================
+# SOLAMETE MOSTRARA Datos del cliente (TARJETA )
+# ============================
+
 from flask import Blueprint, jsonify
 from service.users_service import get_all_users, get_user_full
 
