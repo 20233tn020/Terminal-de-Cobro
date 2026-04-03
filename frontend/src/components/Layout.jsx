@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, AppBar, Toolbar, Typography, List, ListItem, ListItemButton,
@@ -26,6 +26,26 @@ const Layout = ({ children }) => {
     return 'SpaceBank';
   };
 
+    const [user, setUser] = useState(null);
+
+
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem("user");
+
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                setUser(parsed);
+            }
+
+        } catch (error) {
+            console.error("Error leyendo usuario:", error);
+            localStorage.removeItem("user");
+        }
+    }, []);
+
+
   return (
     // CAMBIO 1: Forzamos width a 100vw y quitamos márgenes por defecto
     <Box sx={{ display: 'flex', minHeight: '100vh', width: '100vw', bgcolor: '#ECEFF1', m: 0, p: 0 }}>
@@ -47,8 +67,8 @@ const Layout = ({ children }) => {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton sx={{ color: '#070825' }}><NotificationsIcon /></IconButton>
-            <Typography color="#070825" variant="body2" fontWeight="bold">Asesor: A. Martínez</Typography>
-            <Avatar sx={{ bgcolor: '#070825', border: '2px solid #070825', width: 35, height: 35 }}>AM</Avatar>
+            <Typography color="#070825" variant="body2" fontWeight="bold">Asesor: {user ? user.nombre: "cargando.."}</Typography>
+            <Avatar sx={{ width: 35, height: 35 }} src={user ? user.foto: "cargando..."}></Avatar>
           </Box>
         </Toolbar>
       </AppBar>
@@ -108,7 +128,12 @@ const Layout = ({ children }) => {
 
         <List sx={{ px: 2, pb: 3 }}>
           <ListItem disablePadding>
-            <ListItemButton onClick={() => navigate('/')} sx={{ borderRadius: 2, color: '#ff5252', '&:hover': { bgcolor: 'rgba(255, 82, 82, 0.1)' } }}>
+            <ListItemButton onClick={() => {
+                localStorage.removeItem("user");
+                window.location.href = "/";
+            }}
+
+                            sx={{ borderRadius: 2, color: '#ff5252', '&:hover': { bgcolor: 'rgba(255, 82, 82, 0.1)' } }}>
               <ListItemIcon><LogoutIcon sx={{ color: '#ff5252' }} /></ListItemIcon>
               <ListItemText primary="Cerrar Sesión" />
             </ListItemButton>

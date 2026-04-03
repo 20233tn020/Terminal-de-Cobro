@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import spaceTheme from './theme';
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 // Componentes
 import Login from './components/Login';
@@ -30,23 +31,28 @@ function App() {
 
           {/* RUTAS CON LA BARRA LATERAL (Envueltas en el Layout) */}
           <Route path="/terminal" element={
+            <ProtectedRoute>
             <Layout>
               <Terminal />
             </Layout>
+              </ProtectedRoute>
           } />
 
           <Route path="/mercado" element={
+            <ProtectedRoute>
             <Layout>
               <Market />
             </Layout>
+              </ProtectedRoute>
           } />
 
           <Route path="/historial" element={
+            <ProtectedRoute>
             <Layout>
               <History />
             </Layout>
+              </ProtectedRoute>
           } />
-
         </Routes>
       </Router>
 
