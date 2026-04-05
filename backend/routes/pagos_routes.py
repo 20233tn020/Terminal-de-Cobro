@@ -51,7 +51,8 @@ def transferencia():
     tarjeta_origen = data.get("tarjeta_origen")
     tarjeta_destino = data.get("tarjeta_destino")
     monto = data.get("monto")
+    nip_ingresado = data.get("nip")
+    metodo_tarjeta = data.get("tipo")
 
-    result = realizar_transferencia(tarjeta_origen, tarjeta_destino, monto)
-
+    result = realizar_transferencia(tarjeta_origen, tarjeta_destino, monto,nip_ingresado,metodo_tarjeta)
     return jsonify(result)

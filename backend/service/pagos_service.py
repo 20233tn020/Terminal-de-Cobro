@@ -1,6 +1,6 @@
 from config.db import get_connection
 from decimal import Decimal
-
+import  bcrypt
 
 # ===========================
 # 💰 DEPÓSITO
@@ -164,7 +164,7 @@ def retirar_efectivo(numero_tarjeta, monto, tipo, nip):
 # ===========================
 # 🔄 TRANSFERENCIA
 # ===========================
-def realizar_transferencia(origen, destino, monto):
+def realizar_transferencia(origen, destino, monto, nip_ingresado, metodo_tarjeta):
 
     connection = get_connection()
     cursor = connection.cursor()
@@ -172,16 +172,17 @@ def realizar_transferencia(origen, destino, monto):
     try:
         monto = Decimal(monto)
 
-        # 🔍 ORIGEN
+        # ORIGEN
         cursor.execute("""
-                       SELECT c.id_cuenta, c.saldo_disponible
+                       SELECT c.id_cuenta, c.saldo_disponible, c.linea_credito,
+                              t.nip, t.intentos_fallidos, t.bloqueo
                        FROM tarjetas t
                                 JOIN cuentas c ON t.id_cuenta = c.id_cuenta
                        WHERE t.numero_tarjeta = %s
                        """, (origen,))
         cuenta_origen = cursor.fetchone()
 
-        # 🔍 DESTINO
+        # DESTINO
         cursor.execute("""
                        SELECT c.id_cuenta
                        FROM tarjetas t
@@ -193,57 +194,110 @@ def realizar_transferencia(origen, destino, monto):
         if not cuenta_origen or not cuenta_destino:
             return {"status": False, "msg": "Cuenta no encontrada"}
 
-        # 💥 VALIDAR SALDO
-        if monto > cuenta_origen["saldo_disponible"]:
-            return {"status": False, "msg": "Fondos insuficientes"}
+        if not cuenta_origen["bloqueo"]:
+            return {"status": False, "msg": "Cuenta bloqueada"}
 
-        # 🔻 RESTAR ORIGEN
-        nuevo_saldo = cuenta_origen["saldo_disponible"] - monto
+        # VALIDAR NIP
+        if nip_ingresado != cuenta_origen['nip']:
 
+            nuevos_intentos = cuenta_origen["intentos_fallidos"] + 1
+
+            if nuevos_intentos >= 3:
+                cursor.execute("""
+                               UPDATE tarjetas
+                               SET intentos_fallidos = %s, bloqueo = 1
+                               WHERE id_cuenta = %s
+                               """, (nuevos_intentos, cuenta_origen["id_cuenta"]))
+                connection.commit()
+
+                return {"status": False, "msg": "Cuenta bloqueada por intentos"}
+
+            else:
+                cursor.execute("""
+                               UPDATE tarjetas
+                               SET intentos_fallidos = %s
+                               WHERE id_cuenta = %s
+                               """, (nuevos_intentos, cuenta_origen["id_cuenta"]))
+                connection.commit()
+
+                return {"status": False, "msg": f"NIP incorrecto ({nuevos_intentos}/3)"}
+
+        # 🔁reseteamos los  intentos
         cursor.execute("""
-                       UPDATE cuentas
-                       SET saldo_disponible = %s
+                       UPDATE tarjetas
+                       SET intentos_fallidos = 0
                        WHERE id_cuenta = %s
-                       """, (nuevo_saldo, cuenta_origen["id_cuenta"]))
+                       """, (cuenta_origen["id_cuenta"],))
 
-        # 🔺 SUMAR DESTINO
+        #  evitar misma cuenta
+        if cuenta_origen["id_cuenta"] == cuenta_destino["id_cuenta"]:
+            return {"status": False, "msg": "No puedes transferirte a ti mismo"}
+
+        # 💳DÉBITO
+        if metodo_tarjeta == "debito":
+
+            if monto > cuenta_origen["saldo_disponible"]:
+                return {"status": False, "msg": "Fondos insuficientes"}
+
+            cursor.execute("""
+                           UPDATE cuentas
+                           SET saldo_disponible = saldo_disponible - %s
+                           WHERE id_cuenta = %s
+                           """, (monto, cuenta_origen["id_cuenta"]))
+
+        # 💳 CRÉDITO
+        elif metodo_tarjeta == "credito":
+
+            if monto > cuenta_origen["linea_credito"]:
+                return {"status": False, "msg": "Línea insuficiente"}
+
+            cursor.execute("""
+                           UPDATE cuentas
+                           SET linea_credito = linea_credito - %s
+                           WHERE id_cuenta = %s
+                           """, (monto, cuenta_origen["id_cuenta"]))
+
+        # ➕ DESTINO
         cursor.execute("""
                        UPDATE cuentas
                        SET saldo_disponible = saldo_disponible + %s
                        WHERE id_cuenta = %s
                        """, (monto, cuenta_destino["id_cuenta"]))
 
-        # 🧾 HISTORIAL ORIGEN
+        # 🧾 HISTORIAL
         cursor.execute("""
                        INSERT INTO transacciones (id_cuenta, tipo, monto, descripcion)
-                       VALUES (%s, 'transferencia', %s, %s)
+                       VALUES (%s, %s, %s, %s)
                        """, (
                            cuenta_origen["id_cuenta"],
+                           "transferencia",
                            monto,
-                           f"Transferencia enviada"
-                       ))
-
-        # 🧾 HISTORIAL DESTINO
-        cursor.execute("""
-                       INSERT INTO transacciones (id_cuenta, tipo, monto, descripcion)
-                       VALUES (%s, 'deposito', %s, %s)
-                       """, (
-                           cuenta_destino["id_cuenta"],
-                           monto,
-                           f"Transferencia recibida"
+                           "Transferencia enviada"
                        ))
 
         connection.commit()
 
-        return {
-            "status": True,
-            "msg": "Transferencia exitosa"
-        }
-
+        return {"status": True, "msg": "Transferencia exitosa"}
     except Exception as e:
         connection.rollback()
         return {"status": False, "msg": str(e)}
-
     finally:
         cursor.close()
         connection.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
