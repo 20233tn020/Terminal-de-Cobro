@@ -1,0 +1,2 @@
+# ========================================
+# SOLAMENTE OPREACIONES (DEPOSITOS, RETIRAR, TRANFERENCIAS Y CAMBIO DE DIVISAS )
