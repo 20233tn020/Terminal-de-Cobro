@@ -73,7 +73,8 @@ export default function Market() {
   // ==========================
   const fetchMarketData = useCallback(async () => {
     try {
-      const res = await fetch("http://127.0.0.1:5000/api/mercado/activos");
+      // URL DE TU AWS API GATEWAY
+      const res = await fetch("https://a4jie6cxsg.execute-api.us-east-1.amazonaws.com/api/mercado?accion=activos");
 
       if (!res.ok) throw new Error("Error en API");
 
@@ -225,7 +226,7 @@ export default function Market() {
                               {selectedCoin.name}
                             </Typography>
                             <Chip label={selectedCoin.symbol.toUpperCase()} size="small" sx={{ fontWeight: 'bold', bgcolor: themeColors.primary, color: '#fff', borderRadius: 1 }} />
-                            <Chip label={`Rank #${selectedCoin.market_cap_rank || '?'}`} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />
+                            <Chip label={`Rank #${selectedCoin.market_cap_rank || '?'}`} size="small" variant="outlined" sx={{ fontWeight: 'bold', color: '#000000' }} />
                           </Box>
                           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                             Activo Digital • Mercado Global

@@ -1,8 +1,8 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Drawer, AppBar, Toolbar, Typography, List, ListItem, ListItemButton,
-  ListItemIcon, ListItemText, Divider, Avatar, IconButton
+  ListItemIcon, ListItemText, Divider, Avatar, IconButton, Skeleton
 } from '@mui/material';
 
 // Íconos
@@ -15,9 +15,19 @@ import LogoutIcon from '@mui/icons-material/Logout';
 
 const drawerWidth = 260;
 
+const getDirectImageUrl = (url) => {
+  if (!url) return "";
+  if (url.includes('drive.google.com/file/d/')) {
+    const id = url.split('/d/')[1].split('/')[0];
+    return `https://drive.google.com/uc?export=view&id=${id}`;
+  }
+  return url;
+};
+
 const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [user, setUser] = useState(null);
 
   const getTitle = () => {
     if (location.pathname === '/terminal') return 'Terminal IoT Activa';
@@ -26,35 +36,43 @@ const Layout = ({ children }) => {
     return 'SpaceBank';
   };
 
-    const [user, setUser] = useState(null);
+  // --- EFECTO DE SEGURIDAD (GUARDIA DE RUTAS) ---
+  useEffect(() => {
+    const token = localStorage.getItem("token");
 
+    // Si no hay token, lo expulsamos a la pantalla de Login
+    if (!token) {
+      console.warn("Intento de acceso sin token. Redirigiendo al login...");
+      navigate("/");
+      return; // Detenemos la ejecución
+    }
 
+    // Si hay token, cargamos los datos visuales
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        setUser(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error("Error leyendo usuario:", error);
+      handleLogout();
+    }
+  }, [navigate]);
 
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem("user");
-
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                setUser(parsed);
-            }
-
-        } catch (error) {
-            console.error("Error leyendo usuario:", error);
-            localStorage.removeItem("user");
-        }
-    }, []);
-
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/");
+  };
 
   return (
-    // CAMBIO 1: Forzamos width a 100vw y quitamos márgenes por defecto
     <Box sx={{ display: 'flex', minHeight: '100vh', width: '100vw', bgcolor: '#ECEFF1', m: 0, p: 0 }}>
 
       {/* BARRA SUPERIOR FIJA */}
       <AppBar
         position="fixed"
         sx={{
-          width: `calc(100vw - ${drawerWidth}px)`, // CAMBIO 2: Usar 100vw en lugar de 100%
+          width: `calc(100vw - ${drawerWidth}px)`,
           ml: `${drawerWidth}px`,
           bgcolor: '#ECEFF1',
           boxShadow: 'none',
@@ -67,8 +85,27 @@ const Layout = ({ children }) => {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <IconButton sx={{ color: '#070825' }}><NotificationsIcon /></IconButton>
-            <Typography color="#070825" variant="body2" fontWeight="bold">Asesor: {user ? user.nombre: "cargando.."}</Typography>
-            <Avatar sx={{ width: 35, height: 35 }} src={user ? user.foto: "cargando..."}></Avatar>
+
+            {/* MOSTRAMOS EL NOMBRE DEL USUARIO (O ESQUELETO MIENTRAS CARGA) */}
+            {user ? (
+              <Typography color="#070825" variant="body2" fontWeight="bold">
+                Asesor: {user.nombre}
+              </Typography>
+            ) : (
+              <Skeleton variant="text" width={100} />
+            )}
+
+            {/* MOSTRAMOS LA FOTO DE PERFIL DEL USUARIO */}
+            {user ? (
+              <Avatar
+                sx={{ width: 35, height: 35, border: '2px solid #070825' }}
+                src={getDirectImageUrl(user.foto)} // <--- APLICAMOS LA FUNCIÓN AQUÍ
+                alt={user.nombre}
+              />
+            ) : (
+              <Skeleton variant="circular" width={35} height={35} />
+            )}
+
           </Box>
         </Toolbar>
       </AppBar>
@@ -128,12 +165,10 @@ const Layout = ({ children }) => {
 
         <List sx={{ px: 2, pb: 3 }}>
           <ListItem disablePadding>
-            <ListItemButton onClick={() => {
-                localStorage.removeItem("user");
-                window.location.href = "/";
-            }}
-
-                            sx={{ borderRadius: 2, color: '#ff5252', '&:hover': { bgcolor: 'rgba(255, 82, 82, 0.1)' } }}>
+            <ListItemButton
+              onClick={handleLogout}
+              sx={{ borderRadius: 2, color: '#ff5252', '&:hover': { bgcolor: 'rgba(255, 82, 82, 0.1)' } }}
+            >
               <ListItemIcon><LogoutIcon sx={{ color: '#ff5252' }} /></ListItemIcon>
               <ListItemText primary="Cerrar Sesión" />
             </ListItemButton>
@@ -142,13 +177,7 @@ const Layout = ({ children }) => {
       </Drawer>
 
       {/* ÁREA DE CONTENIDO DINÁMICO */}
-      <Box component="main" sx={{
-        flexGrow: 1,
-        width: `calc(100vw - ${drawerWidth}px)`, // CAMBIO 3: Calculamos exactamente el espacio restante
-        p: 4,
-        pt: 11,
-        overflowX: 'hidden'
-      }}>
+      <Box component="main" sx={{ flexGrow: 1, width: `calc(100vw - ${drawerWidth}px)`, p: 4, pt: 11, overflowX: 'hidden' }}>
         {children}
       </Box>
     </Box>
